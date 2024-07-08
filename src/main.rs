@@ -7,6 +7,7 @@ use crate::engine::validation::{
 };
 use nostr_sdk::Event;
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::error::Error;
 use std::process;
 use tokio::io::{stdin, stdout, AsyncWriteExt};
@@ -32,8 +33,15 @@ struct Response {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let args: Vec<String> = env::args().collect();
+    let config_path = if args.len() == 2 {
+        &args[1]
+    } else {
+        "/etc/chief/config.toml"
+    };
+
     // Load config
-    let config = match load_config("/etc/chief/config.toml") {
+    let config = match load_config(config_path) {
         Ok(cfg) => cfg,
         Err(e) => {
             eprintln!("Failed to load config: {:?}", e);
@@ -69,8 +77,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Box::new(client) as Box<dyn validation::ValidationDataSource>
     } else {
         // Set up a JSON file as the datasource
-        let json_data_source =
-            JsonDataSource::new_from_file(config.json.file_path.as_str())?;
+        let json_data_source = JsonDataSource::new_from_file(config.json.file_path.as_str())?;
         Box::new(json_data_source) as Box<dyn ValidationDataSource>
     };
 
